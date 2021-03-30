@@ -374,8 +374,6 @@ void ESPWebDAV::handleGet(ResourceType resource, bool isGet)	{
 }
 
 
-
-
 // ------------------------
 void ESPWebDAV::handlePut(ResourceType resource)	{
 // ------------------------
