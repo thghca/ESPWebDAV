@@ -118,11 +118,11 @@ void ESPWebDAV::processClient(THandlerFunction handler, String message) {
 	_chunked = false;
 	_responseHeaders = String();
 	_contentLength = CONTENT_LENGTH_NOT_SET;
-  _contentRangeStart = _contentRangeEnd = CONTENT_RANGE_NOT_SET;
+  	_contentRangeStart = _contentRangeEnd = CONTENT_RANGE_NOT_SET;
 	method = String();
 	uri = String();
 	contentLengthHeader = String();
-  contentRangeHeader = String();
+  	contentRangeHeader = String();
 	depthHeader = String();
 	hostHeader = String();
 	destinationHeader = String();
@@ -192,27 +192,27 @@ bool ESPWebDAV::parseRequest() {
 			contentLengthHeader = headerValue;
 		else if(headerName.equalsIgnoreCase("Destination"))
 			destinationHeader = headerValue;
-    else if (headerName.equalsIgnoreCase("Content-Range"))
-    {
-      contentRangeHeader = headerValue;
-      _contentRangeStart = _contentRangeEnd = 0;
-      bool bDashReached=false;
-      for (int i=0; i<headerValue.length(); i++)
-      {
-        if (headerValue.c_str()[i]=='-')
-        {
-          bDashReached=true;
-          break;
-        }
-        if (headerValue.c_str()[i]>='0' && headerValue.c_str()[i]<='9')
-        {
-          if (!bDashReached)
-            _contentRangeStart=_contentRangeStart*10+(headerValue[i]-'0');
-          else
-            _contentRangeEnd=_contentRangeEnd*10+(headerValue[i]-'0');
-        }
-      }   
-    }
+		else if (headerName.equalsIgnoreCase("Content-Range"))
+		{
+			contentRangeHeader = headerValue;
+			_contentRangeStart = _contentRangeEnd = 0;
+			bool bDashReached=false;
+			for (int i=0; i<headerValue.length(); i++)
+			{
+				if (headerValue.c_str()[i]=='-')
+				{
+				bDashReached=true;
+				break;
+				}
+				if (headerValue.c_str()[i]>='0' && headerValue.c_str()[i]<='9')
+				{
+				if (!bDashReached)
+					_contentRangeStart=_contentRangeStart*10+(headerValue[i]-'0');
+				else
+					_contentRangeEnd=_contentRangeEnd*10+(headerValue[i]-'0');
+				}
+			}   
+		}
 	}
 	
 	return true;

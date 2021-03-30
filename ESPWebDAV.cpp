@@ -397,59 +397,94 @@ void ESPWebDAV::handlePut(ResourceType resource)	{
 	// did server send any data in put
 	size_t contentLen = contentLengthHeader.toInt();
 
-	if(contentLen != 0)	{
-		// buffer size is critical *don't change*
+	if (_contentRangeStart==CONTENT_RANGE_NOT_SET && _contentRangeEnd==CONTENT_RANGE_NOT_SET)
+	{
+		if(contentLen != 0)	{
+			// buffer size is critical *don't change*
+			const size_t WRITE_BLOCK_CONST = 512;
+			uint8_t buf[WRITE_BLOCK_CONST];
+			long tStart = millis();
+			size_t numRemaining = contentLen;
+
+			// high speed raw write implementation
+			// close any previous file
+			nFile.close();
+			// delete old file
+			sd.remove(uri.c_str());
+		
+			// create a contiguous file
+			size_t contBlocks = (contentLen/WRITE_BLOCK_CONST + 1);
+			uint32_t bgnBlock, endBlock;
+
+			if (!nFile.createContiguous(sd.vwd(), uri.c_str(), contBlocks * WRITE_BLOCK_CONST))
+				return handleWriteError("File create contiguous sections failed", &nFile);
+
+			// get the location of the file's blocks
+			if (!nFile.contiguousRange(&bgnBlock, &endBlock))
+				return handleWriteError("Unable to get contiguous range", &nFile);
+
+			if (!sd.card()->writeStart(bgnBlock, contBlocks))
+				return handleWriteError("Unable to start writing contiguous range", &nFile);
+
+			// read data from stream and write to the file
+			while(numRemaining > 0)	{
+				size_t numToRead = (numRemaining > WRITE_BLOCK_CONST) ? WRITE_BLOCK_CONST : numRemaining;
+				size_t numRead = readBytesWithTimeout(buf, sizeof(buf), numToRead);
+				if(numRead == 0)
+					break;
+
+				// store whole buffer into file regardless of numRead
+				if (!sd.card()->writeData(buf))
+					return handleWriteError("Write data failed", &nFile);
+
+				// reduce the number outstanding
+				numRemaining -= numRead;
+			}
+
+			// stop writing operation
+			if (!sd.card()->writeStop())
+				return handleWriteError("Unable to stop writing contiguous range", &nFile);
+
+			// detect timeout condition
+			if(numRemaining)
+				return handleWriteError("Timed out waiting for data", &nFile);
+
+			// truncate the file to right length
+			if(!nFile.truncate(contentLen))
+				return handleWriteError("Unable to truncate the file", &nFile);
+
+			DBG_PRINT("File "); DBG_PRINT(contentLen - numRemaining); DBG_PRINT(" bytes stored in: "); DBG_PRINT((millis() - tStart)/1000); DBG_PRINTLN(" sec");
+		}
+	}
+	else
+	{
+		// set up buffer
 		const size_t WRITE_BLOCK_CONST = 512;
 		uint8_t buf[WRITE_BLOCK_CONST];
 		long tStart = millis();
 		size_t numRemaining = contentLen;
 
-		// high speed raw write implementation
-		// close any previous file
-		nFile.close();
-		// delete old file
-		sd.remove(uri.c_str());
-	
-		// create a contiguous file
-		size_t contBlocks = (contentLen/WRITE_BLOCK_CONST + 1);
-		uint32_t bgnBlock, endBlock;
+		// seek to beginning of range
+		nFile.seekSet(_contentRangeStart);
 
-		if (!nFile.createContiguous(sd.vwd(), uri.c_str(), contBlocks * WRITE_BLOCK_CONST))
-			return handleWriteError("File create contiguous sections failed", &nFile);
-
-		// get the location of the file's blocks
-		if (!nFile.contiguousRange(&bgnBlock, &endBlock))
-			return handleWriteError("Unable to get contiguous range", &nFile);
-
-		if (!sd.card()->writeStart(bgnBlock, contBlocks))
-			return handleWriteError("Unable to start writing contiguous range", &nFile);
-
-		// read data from stream and write to the file
-		while(numRemaining > 0)	{
+		// update file
+		while (numRemaining>0)
+		{
 			size_t numToRead = (numRemaining > WRITE_BLOCK_CONST) ? WRITE_BLOCK_CONST : numRemaining;
 			size_t numRead = readBytesWithTimeout(buf, sizeof(buf), numToRead);
 			if(numRead == 0)
 				break;
-
-			// store whole buffer into file regardless of numRead
-			if (!sd.card()->writeData(buf))
-				return handleWriteError("Write data failed", &nFile);
-
-			// reduce the number outstanding
-			numRemaining -= numRead;
+			nFile.write(buf, numRead);
+			numRemaining-=numRead;
 		}
 
-		// stop writing operation
-		if (!sd.card()->writeStop())
-			return handleWriteError("Unable to stop writing contiguous range", &nFile);
+		// close
+		if (!nFile.close())
+			return handleWriteError("Unable to close file after write", &nFile);
 
-		// detect timeout condition
-		if(numRemaining)
+		// timed out?
+		if (numRemaining)
 			return handleWriteError("Timed out waiting for data", &nFile);
-
-		// truncate the file to right length
-		if(!nFile.truncate(contentLen))
-			return handleWriteError("Unable to truncate the file", &nFile);
 
 		DBG_PRINT("File "); DBG_PRINT(contentLen - numRemaining); DBG_PRINT(" bytes stored in: "); DBG_PRINT((millis() - tStart)/1000); DBG_PRINTLN(" sec");
 	}
