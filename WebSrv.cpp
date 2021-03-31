@@ -192,7 +192,7 @@ bool ESPWebDAV::parseRequest() {
 			contentLengthHeader = headerValue;
 		else if(headerName.equalsIgnoreCase("Destination"))
 			destinationHeader = headerValue;
-		else if (headerName.equalsIgnoreCase("Content-Range"))
+		else if (headerName.equalsIgnoreCase("Content-Range") || headerName.equalsIgnoreCase("Range"))
 		{
 			contentRangeHeader = headerValue;
 			_contentRangeStart = _contentRangeEnd = 0;
@@ -201,15 +201,15 @@ bool ESPWebDAV::parseRequest() {
 			{
 				if (headerValue.c_str()[i]=='-')
 				{
-				bDashReached=true;
-				break;
+  				bDashReached=true;
+				  continue;
 				}
 				if (headerValue.c_str()[i]>='0' && headerValue.c_str()[i]<='9')
 				{
-				if (!bDashReached)
-					_contentRangeStart=_contentRangeStart*10+(headerValue[i]-'0');
-				else
-					_contentRangeEnd=_contentRangeEnd*10+(headerValue[i]-'0');
+  				if (!bDashReached)
+  					_contentRangeStart=_contentRangeStart*10+(headerValue[i]-'0');
+  				else
+  					_contentRangeEnd=_contentRangeEnd*10+(headerValue[i]-'0');
 				}
 			}   
 		}
@@ -261,7 +261,7 @@ void ESPWebDAV::_prepareHeader(String& response, String code, const char* conten
 		sendHeader("Content-Length", String(_contentLength));
 	else if(_contentLength == CONTENT_LENGTH_UNKNOWN) {
 		_chunked = true;
-		sendHeader("Accept-Ranges","none");
+		sendHeader("Accept-Ranges","bytes");
 		sendHeader("Transfer-Encoding","chunked");
 	}
 	sendHeader("Connection", "close");
