@@ -22,8 +22,8 @@ enum DepthType { DEPTH_NONE, DEPTH_CHILD, DEPTH_ALL };
 
 class ESPWebDAV	{
 public:
-	bool init(int chipSelectPin, SPISettings spiSettings, int serverPort);
-  bool initSD(int chipSelectPin, SPISettings spiSettings);
+	bool init(int chipSelectPin, unsigned long spiSettings, int serverPort);
+  bool initSD(int chipSelectPin, unsigned long spiSettings);
   bool startServer();
 	bool isClientWaiting();
 	void handleClient(String blank = "");
@@ -66,7 +66,7 @@ protected:
 	
 	// variables pertaining to current most HTTP request being serviced
 	WiFiServer *server;
-	SdFat sd;
+	SdFat32 sd;
 
 	WiFiClient 	client;
 	String 		method;

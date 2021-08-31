@@ -12,6 +12,7 @@ public:
   static bool canWeTakeBus();
  
 private:
+  static void interruptHandler();
   static volatile long _spiBlockoutTime;
   static bool _weTookBus;
 };
