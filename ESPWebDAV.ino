@@ -1,12 +1,13 @@
 // Using the WebDAV server with Rigidbot 3D printer.
 // Printer controller is a variation of Rambo running Marlin firmware
-
+#include <Arduino.h>
 #include "serial.h"
 #include "parser.h"
 #include "config.h"
 #include "network.h"
 #include "gcode.h"
 #include "sdControl.h"
+
 
 // LED is connected to GPIO2 on this board
 #define INIT_LED			{pinMode(2, OUTPUT);}
