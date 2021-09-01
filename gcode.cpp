@@ -122,11 +122,7 @@ void Gcode::gcode_M51() {
 void Gcode::gcode_M52() {
   if(!network.start()) {
     SERIAL_ECHOLN("Connect fail, please check your INI file or set the wifi config and connect again");
-    SERIAL_ECHOLN("- M50: Set WiFi SSID");
-    SERIAL_ECHOLN("- M51: Set WiFi Password");
-    SERIAL_ECHOLN("- M52: Connect");
-    SERIAL_ECHOLN("- M53: Connection Status");
-    SERIAL_ECHOLN("- M54: Set Hostname");
+    printHelp();
   }
 }
 
@@ -136,11 +132,7 @@ void Gcode::gcode_M52() {
 void Gcode::gcode_M53() {
   if(WiFi.status() != WL_CONNECTED) {
     SERIAL_ECHOLN("Wifi not connected");
-    SERIAL_ECHOLN("- M50: Set WiFi SSID");
-    SERIAL_ECHOLN("- M51: Set WiFi Password");
-    SERIAL_ECHOLN("- M52: Connect");
-    SERIAL_ECHOLN("- M53: Connection Status");
-    SERIAL_ECHOLN("- M54: Set Hostname");
+    printHelp();
   }
   else {
     SERIAL_ECHOLN("");
@@ -172,7 +164,10 @@ void Gcode::process_parsed_command() {
   // Handle a known G, M, or T
   switch (parser.command_letter) {
     case 'G': switch (parser.codenum) {
-      default: parser.unknown_command_error();
+      default: {
+        parser.unknown_command_error();
+        gcode.printHelp();
+      }
     }
     break;
 
@@ -182,11 +177,17 @@ void Gcode::process_parsed_command() {
       case 52: gcode_M52(); break;
       case 53: gcode_M53(); break;
       case 54: gcode_M54(); break;
-      default: parser.unknown_command_error();
+      default: {
+        parser.unknown_command_error();
+        gcode.printHelp();
+      }
     }
     break;
 
-    default: parser.unknown_command_error();
+    default: {
+      parser.unknown_command_error();
+      gcode.printHelp();
+    }
   }
 
   SERIAL_ECHOLN("ok");
@@ -199,4 +200,12 @@ void Gcode::process_next_command() {
   // Parse the next command in the queue
   parser.parse(current_command);
   process_parsed_command();
+}
+
+void Gcode::printHelp(){
+    SERIAL_ECHOLN("- M50: Set WiFi SSID");
+    SERIAL_ECHOLN("- M51: Set WiFi Password");
+    SERIAL_ECHOLN("- M52: Connect");
+    SERIAL_ECHOLN("- M53: Connection Status");
+    SERIAL_ECHOLN("- M54: Set Hostname");
 }

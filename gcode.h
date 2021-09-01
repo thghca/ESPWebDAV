@@ -12,6 +12,7 @@
 class Gcode {
 public:
   void Handle();
+  void printHelp();
   
 private:
   void _commit_command(bool say_ok);
@@ -23,7 +24,7 @@ private:
   void gcode_M53();
   void gcode_M54();
   void process_parsed_command();
-  void process_next_command();
+  void process_next_command();  
   
   /**
    * GCode Command Queue
