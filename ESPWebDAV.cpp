@@ -16,6 +16,7 @@ const char *wdays[]  = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 const char invalidChars[] = 	"%" //Windows webdav
 							"&<>" // break xml
 							"\\:*?\"<>|"; //NTFS (and / as dir separator)
+
 // ------------------------
 bool ESPWebDAV::init(int chipSelectPin, unsigned long spiSettings, int serverPort) {
 // ------------------------
@@ -252,7 +253,7 @@ void ESPWebDAV::handleProp(ResourceType resource)	{
 	if(hasInvalidChars(uri)){
 		return handleNotFound();
 	}
-	
+
 	if(resource == RESOURCE_FILE)
 		sendHeader("Allow", "PROPFIND,OPTIONS,DELETE,COPY,MOVE,HEAD,POST,PUT,GET");
 	else
@@ -304,6 +305,8 @@ void ESPWebDAV::sendPropResponse(boolean recursing, FatFile *curFile)	{
 		else
 			fullResPath += "/" + String(buf);
 	}
+
+	if(fullResPath.equals("/System Volume Information")) return;
 
 	// get file modified time
 	uint16_t pdate;
