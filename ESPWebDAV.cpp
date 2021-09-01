@@ -12,6 +12,10 @@
 const char *months[]  = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 const char *wdays[]  = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
+//not allowed in filepaths
+const char invalidChars[] = 	"%" //Windows webdav
+							"&<>" // break xml
+							"\\:*?\"<>|"; //NTFS (and / as dir separator)
 // ------------------------
 bool ESPWebDAV::init(int chipSelectPin, unsigned long spiSettings, int serverPort) {
 // ------------------------
@@ -35,6 +39,12 @@ bool ESPWebDAV::startServer() {
 	// start the wifi server
 	server->begin();
 	return true;
+}
+
+// ------------------------
+bool ESPWebDAV::hasInvalidChars(const String& path){
+// ------------------------
+	return strpbrk(path.c_str(),invalidChars);
 }
 
 // ------------------------
@@ -97,7 +107,7 @@ void ESPWebDAV::handleRequest(String blank)	{
 	ResourceType resource = RESOURCE_NONE;
 
 	// does uri refer to a file or directory or a null?
-	FatFile tFile;
+	File32 tFile;
 	if(tFile.open(uri.c_str(), O_READ))	{
 		resource = tFile.isDir() ? RESOURCE_DIR : RESOURCE_FILE;
 		tFile.close();
@@ -239,6 +249,10 @@ void ESPWebDAV::handleProp(ResourceType resource)	{
 	if(resource == RESOURCE_NONE)
 		return handleNotFound();
 
+	if(hasInvalidChars(uri)){
+		return handleNotFound();
+	}
+	
 	if(resource == RESOURCE_FILE)
 		sendHeader("Allow", "PROPFIND,OPTIONS,DELETE,COPY,MOVE,HEAD,POST,PUT,GET");
 	else
@@ -250,13 +264,13 @@ void ESPWebDAV::handleProp(ResourceType resource)	{
 	sendContent(F("<D:multistatus xmlns:D=\"DAV:\">"));
 
 	// open this resource
-	SdFile baseFile;
+	File32 baseFile;
 	baseFile.open(uri.c_str(), O_READ);
 	sendPropResponse(false, &baseFile);
 
 	if((resource == RESOURCE_DIR) && (depth == DEPTH_CHILD))	{
 		// append children information to message
-		SdFile childFile;
+		File32 childFile;
 		while(childFile.openNext(&baseFile, O_READ)) {
 			yield();
 			sendPropResponse(true, &childFile);
@@ -275,15 +289,21 @@ void ESPWebDAV::sendPropResponse(boolean recursing, FatFile *curFile)	{
 // ------------------------
 	char buf[255];
 	curFile->getName(buf, sizeof(buf));
+	
+	if(hasInvalidChars(buf)){
+		DBG_PRINTLN("File with invalid characters in path skipped");
+		return;
+	}
 
 // String fullResPath = "http://" + hostHeader + uri;
 	String fullResPath = uri;
 
-	if(recursing)
+	if(recursing){
 		if(fullResPath.endsWith("/"))
 			fullResPath += String(buf);
 		else
 			fullResPath += "/" + String(buf);
+	}
 
 	// get file modified time
 	uint16_t pdate;
@@ -344,7 +364,7 @@ void ESPWebDAV::handleGet(ResourceType resource, bool isGet)	{
 	if(resource != RESOURCE_FILE)
 		return handleNotFound();
 
-	SdFile rFile;
+	File32 rFile;
 	long tStart = millis();
 	uint8_t buf[1460];
 	rFile.open(uri.c_str(), O_READ);
@@ -386,8 +406,13 @@ void ESPWebDAV::handlePut(ResourceType resource)	{
 	if(resource == RESOURCE_DIR)
 		return handleNotFound();
 
-	SdFile nFile;
+	File32 nFile;
 	sendHeader("Allow", "PROPFIND,OPTIONS,DELETE,COPY,MOVE,HEAD,POST,PUT,GET");
+
+	DBG_PRINTLN(uri.c_str());
+
+	if(hasInvalidChars(uri))
+		return handleWriteError("Invalid characters in path", &nFile);
 
 	// if file does not exist, create it
 	if(resource == RESOURCE_NONE)	{
@@ -490,6 +515,12 @@ void ESPWebDAV::handleDirectoryCreate(ResourceType resource)	{
 	if(resource != RESOURCE_NONE)
 		return handleNotFound();
 	
+	if(hasInvalidChars(uri)){
+		send("500 Internal Server Error", "text/plain", "Invalid characters in path");
+		DBG_PRINTLN("Invalid characters in path");
+		return;
+	}
+
 	// create directory
 	if (!sd.mkdir(uri.c_str(), true)) {
 		// send error
@@ -517,9 +548,21 @@ void ESPWebDAV::handleMove(ResourceType resource)	{
 	if(destinationHeader.length() == 0)
 		return handleNotFound();
 	
-	String dest = urlToUri(destinationHeader);
-		
+	String dest = urlDecode(urlToUri(destinationHeader));
+	
 	DBG_PRINT("Move destination: "); DBG_PRINTLN(dest);
+
+	if(hasInvalidChars(uri)){
+		send("500 Internal Server Error", "text/plain", "Invalid characters in path");
+		DBG_PRINTLN("Invalid characters in path");
+		return;
+	}
+	
+	if(hasInvalidChars(dest)){
+		send("500 Internal Server Error", "text/plain", "Invalid characters in path");
+		DBG_PRINTLN("Invalid characters in path");
+		return;
+	}
 
 	// move file or directory
 	if ( !sd.rename(uri.c_str(), dest.c_str())	) {

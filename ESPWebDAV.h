@@ -23,12 +23,12 @@ enum DepthType { DEPTH_NONE, DEPTH_CHILD, DEPTH_ALL };
 class ESPWebDAV	{
 public:
 	bool init(int chipSelectPin, unsigned long spiSettings, int serverPort);
-  bool initSD(int chipSelectPin, unsigned long spiSettings);
-  bool startServer();
+  	bool initSD(int chipSelectPin, unsigned long spiSettings);
+  	bool startServer();
 	bool isClientWaiting();
 	void handleClient(String blank = "");
 	void rejectClient(String rejectMessage);
-	
+	bool hasInvalidChars(const String& path);
 protected:
 	typedef void (ESPWebDAV::*THandlerFunction)(String);
 	
@@ -52,6 +52,7 @@ protected:
 	// Sections are copied from ESP8266Webserver
 	String getMimeType(String path);
 	String urlDecode(const String& text);
+	String urlEncode(const String& text);
 	String urlToUri(String url);
 	bool parseRequest();
 	void sendHeader(const String& name, const String& value, bool first = false);
