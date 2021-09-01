@@ -79,7 +79,7 @@ protected:
 
 	String 		_responseHeaders;
 	bool		_chunked;
-	int			_contentLength;
+	unsigned int _contentLength;
 };
 
 extern ESPWebDAV dav;
