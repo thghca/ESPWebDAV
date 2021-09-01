@@ -1,3 +1,8 @@
+#This fork:
+1. Supports utf8
+2. Disallow some special chars as woraround
+3. Uses Sdfat 2.1.0
+
 # WebDAV Server and a 3D Printer
 This project is a WiFi WebDAV server using ESP8266 SoC. It maintains the filesystem on an SD card.
 
