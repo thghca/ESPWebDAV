@@ -10,6 +10,8 @@
 
 #define EEPROM_SIZE 512
 
+#define DEFAULT_HOSTNAME "ESPWebDav"
+
 typedef struct config_type
 {
   unsigned char flag; // Was saved before?

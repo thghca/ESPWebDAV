@@ -104,7 +104,7 @@ unsigned char Config::load() {
 
   EEPROM.begin(EEPROM_SIZE);
   uint8_t *p = (uint8_t*)(&data);
-  for (int i = 0; i < sizeof(data); i++)
+  for (unsigned int i = 0; i < sizeof(data); i++)
   {
     *(p + i) = EEPROM.read(i);
   }
@@ -113,7 +113,10 @@ unsigned char Config::load() {
   if(data.flag) {
     SERIAL_ECHOLN("Going to use the old config to connect the network");
   }
-  SERIAL_ECHOLN("We didn't connect the network before");
+  else{
+    SERIAL_ECHOLN("We didn't connect the network before");
+    strcpy(data._hostname, DEFAULT_HOSTNAME);
+  }
   return data.flag;
 }
 
@@ -154,7 +157,7 @@ void Config::save(const char*ssid,const char*password, const char* hostname) {
   strncpy(data.psw, password, WIFI_PASSWD_LEN);
   strncpy(data._hostname, hostname, HOSTNAME_LEN);
   uint8_t *p = (uint8_t*)(&data);
-  for (int i = 0; i < sizeof(data); i++)
+  for (unsigned int i = 0; i < sizeof(data); i++)
   {
     EEPROM.write(i, *(p + i));
   }
@@ -168,7 +171,7 @@ void Config::save() {
   EEPROM.begin(EEPROM_SIZE);
   data.flag = 1;
   uint8_t *p = (uint8_t*)(&data);
-  for (int i = 0; i < sizeof(data); i++)
+  for (unsigned int i = 0; i < sizeof(data); i++)
   {
     EEPROM.write(i, *(p + i));
   }
